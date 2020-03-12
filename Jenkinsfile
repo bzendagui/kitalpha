@@ -18,12 +18,24 @@ podTemplate(
 	  	wrap([$class: 'Xvnc', takeScreenshot: false, useXauthority: true]) {
                 git 'https://github.com/eclipse/kitalpha.git'
               	sh '''
+              		env
               	    export JAVA_HOME=/opt/tools/java/oracle/jdk-8/latest
-                    /opt/tools/apache-maven/latest/bin/mvn -Dmaven.test.failure.ignore=true -Dtycho.localArtifacts=ignore clean verify -B -e -f releng/plugins/org.polarsys.kitalpha.releng.parent/pom.xml
+              	    /opt/tools/apache-maven/latest/bin/mvn -Dmaven.test.failure.ignore=true -Dtycho.localArtifacts=ignore clean verify -B -e -f releng/plugins/org.polarsys.kitalpha.releng.parent/pom.xml
           	    '''
 			   archiveArtifacts artifacts: '**/*.log, **/*.layout, releng/plugins/org.polarsys.kitalpha.releng.samplecomponent.updatesite/target/repository/**, releng/plugins/org.polarsys.kitalpha.releng.runtime.core.updatesite/target/repository/**,releng/plugins/org.polarsys.kitalpha.releng.runtime.updatesite/target/repository/**,releng/plugins/org.polarsys.kitalpha.releng.sdk.updatesite/target/repository/**, releng/plugins/org.polarsys.kitalpha.releng.sdk.product/target/products/*.zip'
 		       junit '**/target/surefire-reports/*.xml'
 	    }
+    }
+    stage('SonarQube analysis') { 
+    	withSonarQubeEnv('Sonar') {
+			//-Dsonar.auth.token=${SONAR_AUTH_TOKEN} -Dsonar.login=${SONAR_LOGIN} -Dsonar.password=${SONAR_PASSWORD} -Dsonar.jdbc.url=${SONAR_JDBC_URL} -Dsonar.jdbc.username=${SONAR_JDBC_USERNAME} -Dsonar.jdbc.password=${SONAR_JDBC_PASSWORD}"
+          sh 'mvn $SONAR_MAVEN_GOAL -PKitalphaSonar ' + 
+          '-f all/pom.xml ' +
+          '-Dsonar.host.url=https://sonar.eclipse.org/ '
+          '-Dsonar.projectKey=org.polarsys:org.polarsys.kitalpha ' +
+          '-Dsonar.login=$SONAR_UN ' +
+          '-Dsonar.password=$SONAR_PW '
+        }
     }
     stage('Deploy') {
           sshagent ( ['projects-storage.eclipse.org-bot-ssh']) {
